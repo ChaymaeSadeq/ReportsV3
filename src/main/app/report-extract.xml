@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<http:listener-config name="HTTP_Listener_Configuration" host="localhost" port="9090" doc:name="HTTP Listener Configuration"/>
+	<sfdc:cached-config-oauth-user-pass name="Salesforce__OAuth_2_0_Username_Password" consumerKey="3MVG9DREgiBqN9WnMpsYfEXDyELpjV4354ybCMAfifMU9qk.hNxG37hvB.ldxLGzVTfd02wAcMky6PkxZAD2k" consumerSecret="2A0206CEC5AA31133F9C1DAD147001AF8BFBDC757613C21F8BE872E9BAB85EC2" username="csadeq@deloitte.fr" password="Ch@ymae-18" securityToken="DPlxIkFd2s1cXLdlTXWizrQLE" doc:name="Salesforce: OAuth 2.0 Username-Password"/>
+	<http:request-config name="HTTP_Request_Configuration" protocol="HTTPS" host="login.salesforce.com" port="8080" doc:name="HTTP Request Configuration"/>
+	<http:request-config name="HTTP_Request_Configuration1" protocol="HTTPS" host="deloittefr71-dev-ed.my.salesforce.com" port="80" doc:name="HTTP Request Configuration"/>
+	<flow name="report-extractFlow">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/report" doc:name="HTTP"/>
+		<sfdc:query config-ref="Salesforce__OAuth_2_0_Username_Password" query="dsql:select Id from Report where Name='Demo'"  doc:name="Salesforce"/>
+		<set-variable variableName="report_id" value="#[payload.Id]" doc:name="Report Id"/>
+		<logger message="#[payload.Id]" level="INFO" doc:name="Logger"/>
+		<http:request config-ref="HTTP_Request_Configuration" path="/services/oauth2/token" method="POST" doc:name="HTTP"/>
+		<logger message="#[payload.access_token]" level="INFO" doc:name="Token Logger"/>
+		<set-variable variableName="token" value="#[payload.access_token]" doc:name="Token"/>
+		<dw:transform-message doc:name="Transform Message">
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload.access_token]]></dw:set-payload>
+		</dw:transform-message>
+	</flow>
+	<flow name="report-extractFlow1">
+		<http:request config-ref="HTTP_Request_Configuration1" path="/services/data/v49.0/analytics/reports/00O8d000002tygIEAQ" method="GET" doc:name="HTTP"/>
+	</flow>
+</mule>
